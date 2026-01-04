@@ -12,7 +12,9 @@ eval $(opam env)
 opam install utop yojson
 ```
 Para compilar uso Ocamlopt
+
 También se puede usar ocamlc
+
 Uso una librería externa Yojson
 
 # Uso
@@ -23,8 +25,7 @@ make compile (compila)
 make clean   (borra sources)
 make fclean  (borra sources+ejecutable)
 make re      (make fclean + make run)
-``
-
+```
 # TODO
 Determinar logica y estructura de la cinta
 Parser Json a mano
