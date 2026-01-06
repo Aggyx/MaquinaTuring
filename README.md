@@ -27,7 +27,6 @@ make fclean  (borra sources+ejecutable)
 make re      (make fclean + make run)
 ```
 # TODO
-Determinar logica y estructura de la cinta
 Parser Json a mano
-
+bucle de ejecución
 
