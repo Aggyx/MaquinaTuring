@@ -1,16 +1,3 @@
-(* =================================== funciones precompiladas  =================================== *)
-
-let read_text_from_file filename =
-	try
-		let ic = open_in filename in
-		let n = in_channel_length ic in
-		let s = really_input_string ic n in
-		close_in ic;
-		s
-	with Sys_error msg ->
-		print_endline ("Error: " ^ msg);
-		exit 1
-
 (* =================================== Tipo de dato para representar la configuracion  =================================== *)
 
 type paso = Izq | Der | Paro
@@ -58,10 +45,51 @@ let setup_core json =
 	} in
 	core
 
-	
-(* =================================== Tipo de dato para representar la cinta =================================== *)
+(* =================================== Tipo de dato para representar la cinta  =================================== *)
+type cinta = { mutable data : char array; mutable index: int }
 
-let crear_cinta size = Array.make size '_'  (* Inicializar con _ *)
+let crear_cinta size =
+  if size <= 0 then invalid_arg "create: size > 0"
+     else { data = Array.make size '_'; index = 0}
+
+let leer cinta = cinta.data.(cinta.index)
+
+let escribir cinta c = cinta.data.(cinta.index) <- c
+
+let rellenar_cinta cinta (input:string) =
+  let len = String.length input in
+  if len > Array.length cinta.data then
+    invalid_arg "rellenar_cinta: Array allocado es menor que tamaño input"
+  else
+    for i = 0 to len - 1 do
+      cinta.data.(i) <- input.[i]
+    done
+
+let mover_derecha cinta =
+  if Array.length cinta.data > cinta.index + 1 then
+    cinta.index <- cinta.index + 1
+  else cinta.index <- 0
+
+let mover_izquierda cinta =
+  if Array.length cinta.data = 0 then
+    invalid_arg "mover_izquierda: cinta vacia"
+  else if cinta.index <= 0 then
+    cinta.index <- Array.length cinta.data - 1
+  else 
+    cinta.index <- cinta.index - 1
+
+(* =================================== Utilidades =================================== *)
+
+let read_text_from_file filename =
+	try
+		let ic = open_in filename in
+		let n = in_channel_length ic in
+		let s = really_input_string ic n in
+		close_in ic;
+		s
+	with Sys_error msg ->
+		print_endline ("Error: " ^ msg);
+		exit 1
 
 (* =================================== MAIN =================================== *)
 let usage_msg = "usage: ft_turing [-h] jsonfile input\n\npositional arguments:\n  jsonfile\t\tjson description of the machine\n  input\t\tinput of the machine\n\noptional arguments:\n  -h, --help\tshow this help message and exit"
@@ -90,31 +118,16 @@ let () =
     parse_argv ();
     checkforhelp ();
 	let filename = List.nth !argv 0 in
-	let alphabet_str = List.nth !argv 1 in
-	print_endline "<####################################################>\n\t\tTURING MACHINE\n\t\t<####################################################>";
+	let entrada_por_interpretar = List.nth !argv 1 in
+	print_endline "<####################################################>\n\t\tTURING MACHINE\n<####################################################>";
 	print_endline ("Archivo: " ^ filename);
-	print_endline ("Cinta de entrada: " ^ alphabet_str);
+	print_endline ("Cinta de entrada: " ^ entrada_por_interpretar);
 
 	let content = read_text_from_file filename in
 	let json = Yojson.Safe.from_string content in
 	(*Format.printf "Estructura Json:\n%a\n" Yojson.Safe.pp json;*)
 
 	let turing_machine_config = setup_core json in
-	(*	
-	let turing_machine_config = {
-		name = Yojson.Safe.Util.(json |> member "name" |> to_string);
-		alphabet = Yojson.Safe.Util.(json |> member "alphabet" |> to_list |> filter_string);
-		blank = Yojson.Safe.Util.(json |> member "blank" |> to_string);
-		states = Yojson.Safe.Util.(json |> member "states" |> to_list |> filter_string);
-		initial = Yojson.Safe.Util.(json |> member "initial" |> to_string);
-		finals = Yojson.Safe.Util.(json |> member "finals" |> to_list |> filter_string);
-		transiciones = {
-			cinta = ref [];
-			cabeza = ref 0;
-			estado = ref Yojson.Safe.Util.(json |> member "initial" |> to_string);
-			transiciones = Hashtbl.create 10;
-		};
-	} in*)
 
 	print_endline ("Name of the loaded Machine: " ^ turing_machine_config.name);
 	print_endline ("Loaded alphabet: " ^ String.concat ", " turing_machine_config.alphabet);
@@ -124,6 +137,14 @@ let () =
 	print_endline ("Final states: " ^ String.concat ", " turing_machine_config.finals);
 	print_endline ("\n<####################################################>\n\t\tINITIALIZING TURING MACHINE\n<####################################################>");
 
+	let cinta = crear_cinta (List.length turing_machine_config.alphabet) in
+	rellenar_cinta cinta entrada_por_interpretar;
+	print_endline
+	  ("cinta: " ^
+	   (cinta.data
+	    |> Array.to_list
+	    |> List.map (String.make 1)
+	    |> String.concat ", "))
 	(* Guardar la entrada por interpretar en la cinta *)
 	(* Saber como gestionar la cinta *)
 	(* Simular la máquina de Turing paso a paso y medir complejidad si queremos booonus *)
