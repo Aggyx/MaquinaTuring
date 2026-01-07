@@ -1,9 +1,8 @@
 (* =================================== Tipo de dato para representar la configuracion  =================================== *)
 
-type paso = Izq | Der | Paro
+type paso = Izq | Der
 
 type transicion = {
-  por_leer: string;
   por_escribir: string;
   movimiento: paso;
   prox_estado: string
@@ -28,7 +27,7 @@ type core = {
 
 (* Función para rellenar la estructura 'core' desde un Json (Usando Yojson) *)
 
-let setup_core json =
+let setup_core json num_transiciones =
 	let core = {	
 		name = Yojson.Safe.Util.(json |> member "name" |> to_string);
 		alphabet = Yojson.Safe.Util.(json |> member "alphabet" |> to_list |> filter_string);
@@ -40,10 +39,30 @@ let setup_core json =
 			cinta = ref [];
 			cabeza = ref 0;
 			estado = ref Yojson.Safe.Util.(json |> member "initial"	|> to_string);
-			transiciones = Hashtbl.create 10;
+			transiciones = Hashtbl.create num_transiciones;
 		};
 	} in
 	core
+
+let transiciones_json turing_machine_config json =
+	let open Yojson.Safe.Util in
+	let transiciones_por_estado = json |> member "transitions" |> to_assoc in
+	List.iter (fun (estado, transiciones_json) ->
+		List.iter (fun transicion_json ->
+			let simbolo_leido = transicion_json |> member "read" |> to_string in
+			let simbolo_escrito = transicion_json |> member "write" |> to_string in
+			let movimiento = transicion_json |> member "action" |> to_string in
+			let siguiente_estado = transicion_json |> member "to_state" |> to_string in
+			Hashtbl.add turing_machine_config.transiciones.transiciones (estado, simbolo_leido) {
+				por_escribir = simbolo_escrito;
+				movimiento = (match movimiento with
+					| "LEFT" -> Izq
+					| "RIGHT" -> Der
+					| _ -> invalid_arg "transiciones_json: movimiento inválido");
+				prox_estado = siguiente_estado
+			}
+		) (transiciones_json |> to_list)
+	) transiciones_por_estado
 
 (* =================================== Tipo de dato para representar la cinta  =================================== *)
 type cinta = { mutable data : char array; mutable index: int }
@@ -54,7 +73,7 @@ let crear_cinta size =
 
 let leer cinta = cinta.data.(cinta.index)
 
-let escribir cinta c = cinta.data.(cinta.index) <- c
+let escribir cinta (c:string) = cinta.data.(cinta.index) <- String.get c 0
 
 let rellenar_cinta cinta (input:string) =
   let len = String.length input in
@@ -127,24 +146,52 @@ let () =
 	let json = Yojson.Safe.from_string content in
 	(*Format.printf "Estructura Json:\n%a\n" Yojson.Safe.pp json;*)
 
-	let turing_machine_config = setup_core json in
+	let turing_machine_config = setup_core json (String.length entrada_por_interpretar) in
 
 	print_endline ("Name of the loaded Machine: " ^ turing_machine_config.name);
-	print_endline ("Loaded alphabet: " ^ String.concat ", " turing_machine_config.alphabet);
+	print_endline ("Alphabet: " ^ String.concat ", " turing_machine_config.alphabet);
 	print_endline ("Blank symbol: " ^ turing_machine_config.blank);
 	print_endline ("States: " ^ String.concat ", " turing_machine_config.states);
-	print_endline ("Initial state: " ^ turing_machine_config.initial);
-	print_endline ("Final states: " ^ String.concat ", " turing_machine_config.finals);
-	print_endline ("\n<####################################################>\n\t\tINITIALIZING TURING MACHINE\n<####################################################>");
-
-	let cinta = crear_cinta (List.length turing_machine_config.alphabet) in
+	print_endline ("Initial : " ^ turing_machine_config.initial);
+	print_endline ("Finals: " ^ String.concat ", " turing_machine_config.finals);
+	let cinta = crear_cinta (String.length entrada_por_interpretar) in
 	rellenar_cinta cinta entrada_por_interpretar;
-	print_endline
-	  ("cinta: " ^
-	   (cinta.data
-	    |> Array.to_list
-	    |> List.map (String.make 1)
-	    |> String.concat ", "))
-	(* Guardar la entrada por interpretar en la cinta *)
-	(* Saber como gestionar la cinta *)
-	(* Simular la máquina de Turing paso a paso y medir complejidad si queremos booonus *)
+
+	turing_machine_config.transiciones.cinta := List.init (Array.length cinta.data) (fun i -> String.make 1 (cinta.data.(i)));
+
+	transiciones_json turing_machine_config json;
+
+	print_endline ("Transiciones cargadas: " ^ string_of_int (Hashtbl.length turing_machine_config.transiciones.transiciones));
+
+	(*
+	while estado actual != HALT:
+		leer símbolo en la cinta
+		buscar transición correspondiente
+		escribir símbolo en la cinta
+		mover cabeza
+		actualizar estado actual
+	*)
+	while !(turing_machine_config.transiciones.estado) <> "HALT" do
+		(* Leer símbolo en la cinta *)
+		let simbolo_leido = List.nth !(turing_machine_config.transiciones.cinta) !(turing_machine_config.transiciones.cabeza) in
+		(* Buscar transición correspondiente *)
+		(try
+			let transicion = Hashtbl.find turing_machine_config.transiciones.transiciones (!(turing_machine_config.transiciones.estado), simbolo_leido) in
+			(* Escribir símbolo *)
+			escribir cinta transicion.por_escribir;
+			(* Sincronizar escritura en la lista *)
+			turing_machine_config.transiciones.cinta := List.mapi (fun i c -> if i = cinta.index then String.make 1 cinta.data.(i) else c) !(turing_machine_config.transiciones.cinta);
+			(*Mover cinta*)
+			(match transicion.movimiento with
+			| Izq -> mover_izquierda cinta
+			| Der -> mover_derecha cinta);
+			(* Sincronizar movimiento *)
+			turing_machine_config.transiciones.cabeza := cinta.index;
+			(* Actualizar estado *)
+			turing_machine_config.transiciones.estado := transicion.prox_estado;
+			print_endline ("(" ^ !(turing_machine_config.transiciones.estado) ^ ", " ^ simbolo_leido ^ ") -> (" ^ transicion.por_escribir ^ ", " ^ (match transicion.movimiento with Izq -> "LEFT" | Der -> "RIGHT") ^ ", " ^ transicion.prox_estado ^ ")")
+		with Not_found ->
+			print_endline ("No transition found for (" ^ !(turing_machine_config.transiciones.estado) ^ ", " ^ simbolo_leido ^ ")");
+			turing_machine_config.transiciones.estado := "HALT"
+		)
+	done;

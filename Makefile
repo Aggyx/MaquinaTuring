@@ -10,7 +10,7 @@ compile:
 	mv *.o ./build/
 
 run: compile
-	$(output) turing.json 0011
+	$(output) turing.json 111-11=
 
 clean:
 	rm -f build/*.cm* && rm -f build/*.o
