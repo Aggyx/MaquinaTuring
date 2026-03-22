@@ -1,6 +1,6 @@
 (* =================================== Tipo de dato para representar la configuracion  =================================== *)
 
-type paso = Izq | Der
+type paso = Izq | Der | STOP
 
 type transicion = {
   por_escribir: string;
@@ -58,6 +58,7 @@ let transiciones_json turing_machine_config json =
 				movimiento = (match movimiento with
 					| "LEFT" -> Izq
 					| "RIGHT" -> Der
+					| "STOP" -> STOP
 					| _ -> invalid_arg "transiciones_json: movimiento inválido");
 				prox_estado = siguiente_estado
 			}
@@ -85,6 +86,8 @@ let rellenar_cinta cinta (input:string) =
     done
 
 let mover_derecha cinta =
+  if Array.length cinta.data = 0 then
+    invalid_arg "mover_derecha: cinta vacia"
   if Array.length cinta.data > cinta.index + 1 then
     cinta.index <- cinta.index + 1
   else cinta.index <- 0
@@ -110,6 +113,35 @@ let read_text_from_file filename =
 		print_endline ("Error: " ^ msg);
 		exit 1
 
+let print_cinta cinta =
+  let content = Array.fold_left (fun acc c -> acc ^ (String.make 1 c) ^ " ") "" cinta.data in
+  print_endline ("Cinta: " ^ content);
+  print_endline ("Cabeza en posición: " ^ string_of_int cinta.index)
+
+let print_transiciones turing_machine_config =
+  (* Recoger todas las entradas en una lista *)
+  let transiciones_list =
+    Hashtbl.fold (fun (estado, simbolo) transicion acc ->
+      (((estado, simbolo), transicion) :: acc)
+    ) turing_machine_config.transiciones.transiciones []
+  in
+  (* Ordenar por estado y luego por símbolo *)
+  let ordenadas =
+    List.sort (fun ((e1, s1), _) ((e2, s2), _) ->
+      let c = String.compare e1 e2 in
+      if c <> 0 then c else String.compare s1 s2
+    ) transiciones_list
+  in
+  (* Imprimir en orden *)
+  List.iter (fun ((estado, simbolo), transicion) ->
+    print_endline ("(" ^ estado ^ ", " ^ simbolo ^ ") -> (" ^
+      transicion.por_escribir ^ ", " ^
+      (match transicion.movimiento with Izq -> "LEFT" | Der -> "RIGHT" | STOP -> "STOP") ^
+      ", " ^ transicion.prox_estado ^ ")")
+  ) ordenadas;
+
+  print_endline("\n\n########################################################################################################n")
+
 (* =================================== MAIN =================================== *)
 let usage_msg = "usage: ft_turing [-h] jsonfile input\n\npositional arguments:\n  jsonfile\t\tjson description of the machine\n  input\t\tinput of the machine\n\noptional arguments:\n  -h, --help\tshow this help message and exit"
 let argv = ref []
@@ -133,7 +165,7 @@ let checkforhelp ()=
 	if (List.length !argv <> 2) then
 		print_help ()
 
-let () = 
+let () =
     parse_argv ();
     checkforhelp ();
 	let filename = List.nth !argv 0 in
@@ -148,7 +180,7 @@ let () =
 
 	let turing_machine_config = setup_core json (String.length entrada_por_interpretar) in
 
-	print_endline ("Name of the loaded Machine: " ^ turing_machine_config.name);
+	print_endline ("Configuración: " ^ turing_machine_config.name);
 	print_endline ("Alphabet: " ^ String.concat ", " turing_machine_config.alphabet);
 	print_endline ("Blank symbol: " ^ turing_machine_config.blank);
 	print_endline ("States: " ^ String.concat ", " turing_machine_config.states);
@@ -162,7 +194,8 @@ let () =
 	transiciones_json turing_machine_config json;
 
 	print_endline ("Transiciones cargadas: " ^ string_of_int (Hashtbl.length turing_machine_config.transiciones.transiciones));
-
+	print_transiciones turing_machine_config;
+	print_endline ("\n");
 	(*
 	while estado actual != HALT:
 		leer símbolo en la cinta
@@ -184,14 +217,16 @@ let () =
 			(*Mover cinta*)
 			(match transicion.movimiento with
 			| Izq -> mover_izquierda cinta
-			| Der -> mover_derecha cinta);
+			| Der -> mover_derecha cinta
+			| STOP -> ()); (* No hacemos nada *)
 			(* Sincronizar movimiento *)
 			turing_machine_config.transiciones.cabeza := cinta.index;
 			(* Actualizar estado *)
 			turing_machine_config.transiciones.estado := transicion.prox_estado;
-			print_endline ("(" ^ !(turing_machine_config.transiciones.estado) ^ ", " ^ simbolo_leido ^ ") -> (" ^ transicion.por_escribir ^ ", " ^ (match transicion.movimiento with Izq -> "LEFT" | Der -> "RIGHT") ^ ", " ^ transicion.prox_estado ^ ")")
+			print_endline ("(" ^ !(turing_machine_config.transiciones.estado) ^ ", " ^ simbolo_leido ^ ") -> (" ^ transicion.por_escribir ^ ", " ^ (match transicion.movimiento with Izq -> "LEFT" | Der -> "RIGHT" | STOP -> "STOP") ^ ", " ^ transicion.prox_estado ^ ")");
+			print_cinta cinta;
 		with Not_found ->
-			print_endline ("No transition found for (" ^ !(turing_machine_config.transiciones.estado) ^ ", " ^ simbolo_leido ^ ")");
+			print_endline ("No existe la siguiente transición:\n(" ^ !(turing_machine_config.transiciones.estado) ^ ", " ^ simbolo_leido ^ ")");
 			turing_machine_config.transiciones.estado := "HALT"
 		)
 	done;

@@ -1,0 +1,307 @@
+Este archivo describe el razonamiento planteado para llevar a cabo la configuración de un MT capaz de responder con un 'y' o 'n' si la entrada es un palindromo.
+Palíndromo es una palabra, frase, número o secuencia de símbolos que se lee igual de izquierda a derecha que de derecha a izquierda.
+El alphabeto es [ "1", "0", ".","y","n"]
+
+un palindromo nos invita entrar en el mundo binario queriendo distinguir entre dos symbolos para crear entradas que sean y que no sean palindromos,
+ya que todo el conjunto unario es un palindromo.
+
+Con el espacio en blanco en medio tenemos que determinar si la entrada se puede leer igual de izquierda a derecha que de derecha a izquierda.
+M=(Q,Σ,Γ,δ,s,b,F)
+
+Conjunto de Estados (Q) = ? 
+Conjunto de symbolos entrada (Σ) = "1" "0"
+alfabeto de cinta (Γ) = [ "1", "0", ".","y","n"]
+Transición (δ) = ?
+Estado inicial (s) = ?
+símbolo blanco (b) = "."
+Conjunto de estados finales (F) = ?
+
+Σ ⊆ Γ
+y
+𝐵 ∈ Γ
+y 
+F ⊆ Q
+
+
+"name" : "palindromo",
+"alphabet":  ["1", "0", ".","y","n"],
+"blank" : ".",
+
+ejemplos de casos;
+"0" -> Y -> 0
+"1" -> Y -> 1
+"00" -> .Y -> 0
+"10" -> .n
+"11" -> .y -> 3
+"111" -> ..Y -> 7
+"110" -> ..N
+"101" -> ..Y -> 5
+"001" -> ..n
+"0101" -> ...N
+"1001" -> ...Y -> 9
+"01110" -> ...
+"1111" -> ...y -> 15
+"101010"-> .....N
+....0......0 -> .........y
+par / impar no va (ultimo bit seria par impar)
+
+El estado inicial tendría que aceptar todos los symbolos
+("initial", 1) -> (1, "RIGHT", algo)
+("initial", 0) -> (0, "RIGHT", algo)
+("initial", .) -> (".", RIGHT, initial)
+("initial", y) -> (".", "STOP", HALT)
+("initial", n) -> (".", "STOP, HALT)
+
+Para simplificar el cálculo voy a añadir unos marcadores de principio y fin de entrada para definir una entrada válida y facilitar el cálculo.
+añadiendo "(" como principio y ")" como final podríamos simplificar los limites de los estados.
+Por ejemplos ...(...0..00011..11..).... -> ...................N
+Así podría saber hasta dónde procesar
+También añade nuevas entradas inválidas por los dos nuevos caracteres de principio y fin.
+Si No los añades
+Si los posicionas mal, 
+Si los utilizas mal
+Permite que pueda delimitar hasta donde procesar la entrada, si la logica es comparar el primer digito con el ultimo y segundo con penultimo etc..
+Estado inicial = Parsear () + PrimeraIter{1,0} ()
+PrimeraIter{1,0} leo el primero digito -> voy a buscar el final con bucle a symbolo final -> retrocedo de 1 y comparo con symbolo del bucle PrimeraIter{1,0}
+Si es igual
+    seguir retrocediendo -> leer_from_der{1,0} symbolo -> ir hasta a symbolo de principio -> borrar -> mover izq -> PrimeraIter{1,0} ...etc...
+Si no es igual 
+    Halt -> borrar todod escribir N
+
+Sino También puedo imponer al usuario usar los blancos como delimitadores de fin y principio.
+Restringiendo el uso de puntos en la entrada a procesar
+.....110011.....
+......1001y.......
+........y........
+
+..0.
+..y.
+
+..0y...
+
+{
+    "name" : "palindrome",
+    "alphabet": ["1", "0", ".", "y", "n"],
+    "blank" : ".",
+    "states" : [ "initial", "gotoend_cmp1", "gotoend_cmp0", "cmp_1_erase_then_left", "cmp_0_erase_then_left", "borrarL", "gotostart", "initial2", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ],
+    "gotoend_cmp1": [
+        { "read" : ".", "to_state": "cmp_1_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "y", "to_state": "cmp_1_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp1", "write": "0", "action": "RIGHT"}
+    ],
+    "gotoend_cmp0": [
+        { "read" : ".", "to_state": "cmp_0_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "y", "to_state": "cmp_0_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotoend_cmp0", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": "0", "action": "RIGHT"}
+    ],
+    "cmp_1_erase_then_left": [
+        { "read" : ".", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : "0", "to_state": "borrarL", "write": "n", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": "y", "action": "LEFT"}
+    ],
+    "cmp_0_erase_then_left": [
+        { "read" : ".", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : "1", "to_state": "borrarL", "write": "n", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": "y", "action": "LEFT"}
+    ],
+
+    "borrarL": [
+        {"read": ".", "to_state": "HALT", "write": ".", "action": "STOP"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"}
+    ],
+    "gotostart": [
+        { "read" : ".", "to_state": "initial2", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotostart", "write": "1", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"}
+    ],
+
+    "initial2": [
+        { "read" : ".", "to_state": "HALT", "write": ".", "action": "STOP"},
+        { "read" : "y", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ]
+ }
+}
+
+El problema en esta solución esque no puede escribir el resultado a la derecha del todo.
+Además no puedo distingui el final y el principio son puntos.
+Tendría que añadir un nuevo símbolo para delimitar el principio y el final de la entrada, por ejemplo "(" y ")" respectivamente.
+o solo el del final, ya que solo necesita delimitar el final para saber dónde escribir el resultado.
+añadiendo = al alphabeto podemos crear la siguiente máquina:
+
+{
+    "name" : "palindrome",
+    "alphabet": ["1", "0", ".", "y", "n", "="],
+    "blank" : ".",
+    "states" : [ "initial", "gotoend_cmp1", "gotoend_cmp0", "cmp_1_erase_then_left", "cmp_0_erase_then_left", "borrarL", "gotostart", "initial2", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ],
+    "erasedot_fromright": [
+        { "read" : ".", "to_state": "erasedot_fromright", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "erasedot_fromright", "write": ".", "action": "RIGHT"},
+        { "read" : "n", "to_state": "erasedot_fromright", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "erasedot_fromright", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "erasedot_fromright", "write": ".", "action": "RIGHT"},
+        { "read" : "=", "to_state": "initial2", "write": ".", "action": "RIGHT"}
+    ],
+    "gotoend_cmp1": [
+        { "read" : "=", "to_state": "cmp_1_erase_then_left", "write": "=", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+         { "read" : "n", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp1", "write": "0", "action": "RIGHT"}
+    ],
+    "gotoend_cmp0": [
+        { "read" : "=", "to_state": "cmp_0_erase_then_left", "write": "=", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "n", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp0", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": "0", "action": "RIGHT"}
+    ],
+    "cmp_1_erase_then_left": [
+        { "read" : ".", "to_state": "cmp_1_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": ".", "action": "LEFT"}
+    ],
+    "cmp_0_erase_then_left": [
+        { "read" : ".", "to_state": "cmp_0_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": ".", "action": "LEFT"}
+    ],
+
+    "write_y": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "write_y", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "write_y", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "write_y", "write": ".", "action": "RIGHT"}
+    ],
+
+    "write_n": [
+        { "read" : "=", "to_state": "HALT", "write": "n", "action": "STOP"},
+        { "read" : ".", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "write_n", "write": ".", "action": "RIGHT"}
+    ],
+
+    "borrarL": [
+        {"read": "=", "to_state": "HALT", "write": "n", "action": "STOP"},
+        {"read": ".", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"}
+    ],
+    "gotostart": [
+        {"read": "=", "to_state": "initial2", "write": "=", "action": "RIGHT"},
+        { "read" : ".", "to_state": "gotostart", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": "1", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"}
+    ],
+
+    "initial2": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "initial2", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ]
+ }
+}
+
+... testeando con entradas finalemente ;
+
+{
+    "name" : "palindrome",
+    "alphabet": ["1", "0", ".", "y", "n", "="],
+    "blank" : ".",
+    "states" : [ "initial", "gotoend_cmp1", "gotoend_cmp0", "cmp_1_erase_then_left", "cmp_0_erase_then_left", "borrarL", "gotostart", "initial2", "write_y", "write_n", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"},
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ],
+    "gotoend_cmp1": [
+        { "read" : "=", "to_state": "cmp_1_erase_then_left", "write": "=", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "n", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp1", "write": "0", "action": "RIGHT"}
+    ],
+    "gotoend_cmp0": [
+        { "read" : "=", "to_state": "cmp_0_erase_then_left", "write": "=", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "n", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp0", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": "0", "action": "RIGHT"}
+    ],
+    "cmp_1_erase_then_left": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "cmp_1_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": ".", "action": "LEFT"}
+    ],
+    "cmp_0_erase_then_left": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "cmp_0_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": ".", "action": "LEFT"}
+    ],
+
+    "write_y": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "write_y", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "write_y", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "write_y", "write": ".", "action": "RIGHT"}
+    ],
+
+    "write_n": [
+        { "read" : "=", "to_state": "HALT", "write": "n", "action": "STOP"},
+        { "read" : ".", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "write_n", "write": ".", "action": "RIGHT"}
+    ],
+
+    "borrarL": [
+        {"read": ".", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"}
+    ],
+    "gotostart": [
+        {"read": "=", "to_state": "initial2", "write": "=", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"}    
+        { "read" : ".", "to_state": "gotostart", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": "1", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"}
+    ],
+
+    "initial2": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "initial2", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ]
+ }
+}

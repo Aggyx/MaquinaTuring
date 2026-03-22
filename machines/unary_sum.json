@@ -1,0 +1,24 @@
+{
+    "name" : "unary_sum",
+    "alphabet": ["1", ".", "+"],
+    "blank" : ".",
+    "states" : [ "initial", "sum1", "sum2", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"}, 
+        { "read" : "1", "to_state": "sum1", "write": ".", "action": "RIGHT"}, 
+        { "read" : "+", "to_state": "sum2", "write": ".", "action": "RIGHT"}
+    ],
+    "sum1": [
+        { "read" : ".", "to_state": "sum1", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "sum1", "write": "1", "action": "RIGHT"},
+        { "read" : "+", "to_state": "sum2", "write": "1", "action": "RIGHT"}
+    ],
+    "sum2": [
+        { "read" : ".", "to_state": "HALT", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "sum2", "write": "1", "action": "RIGHT"}
+    ]
+    }
+}

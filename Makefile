@@ -10,13 +10,13 @@ compile:
 	mv *.o ./build/
 
 run: compile
-	$(output) turing.json 111-11=
+	./$(output)
 
 clean:
 	rm -f build/*.cm* && rm -f build/*.o
 
 fclean: clean
-	rm -f $(output)
+	if [ -f $(output) ]; then rm -f $(output); fi
 
 re: fclean run
 

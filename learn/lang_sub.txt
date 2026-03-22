@@ -1,0 +1,148 @@
+Este archivo describe el razonamiento planteado para llevar a cabo la configuración de un MT capaz de realizar una resta.
+El alphabeto es [ "1", ".", "-", "=" ]
+
+Las transiciones;
+1-1=0
+1-0=1
+0-1=1
+0-0=0
+(scanright, -) -> (-, RIGHT, scanright)
+(scanright, .) -> (., RIGHT, scanright)
+(scanright, 1) -> (1, RIGHT, scanright)
+(scanright, =) -> (., LEFT, eraseone)
+(eraseone, -) -> (., LEFT, HALT)
+(eraseone, 1) -> (=, LEFT, subone)
+(subone, -) -> (-, LEFT, skip)
+(subone, 1) -> (1, LEFT, subone)
+(skip, .) -> (., LEFT, skip)
+(skip, 1) -> (., RIGHT, scanright)
+
+Si enumero los estados asociados a su symbolo;
+1: scanright, eraseone, subone, skip, 4
+.: scanright, skip, 2
+-: scanright, eraseone, subone 3
+=: scanright,
+
+Según el alphabeto 1 es igual a '1', 0 entiendo que es igual a '.', entonces 1-1= tendría que ser .... 
+El '=' parece ser un symbolo que marca algo, un delimitador para separar los campos, el fin de la expresión.
+El '-' entiendo que es un operador que utiliza tanto el usuario como la máquina para delimitar los campos, y asociar la configuración con el calculo ejecutado
+
+De aquí puedo sacar conclusiones, ya que la configuración necesita un estado inicial podemos construir un arból de ejecución por symbolo, haciendolo determinista.
+
+Pongamos el ejemplo de 1-1= 
+
+Si nos fijamos bien podemos observar el orden de ejecución de los estados, 
+si nos fijamos el las transición del estado inicial vemos que nos moveremos siempre a la derecha de la cinta hasta encontrar '=' y solo en ese momento 
+empezamos a movernos a la izquierda, de paso remplazamos el '=' por un punto y cambiamos por primera vez de estado a 'eraseone'.
+
+ejemplo se convierte en 1-1.
+
+Esto es magnifico, la máquina ha leído hasta el final (marcado por '=') y remplazarlo por un punto.
+El cálculo matemático de la resta se ve reflejada en binario a partir de ahora, en eraseone, esta vez leyendo en sentido inverso,
+vemos que el estado 'eraseone' tiene asociados dos symbolos, el positivo(1) y el operador(-).
+Cuando hay un digito, lo remplaza por el symbolo de fin de expresión, sigue avanzando en sentido contrario cambiando de estado a subone.
+
+ejemplo se convierte en 1-=.
+
+vemos que el estado 'subone' tiene asociados dos symbolos, el positivo(1) y el operador(-).
+Aquí en nuestro ejemplo observamos el funcionamiento del operador '-' como delimitador.
+f(subone, -) -> (-, LEFT, skip)
+Dejamos el symbolo del operador en la expresión y nos seguimos moviendo pero cambiamos de estado a 'skip'
+skip solo escribe puntos(.) (=0=nada=borra) y a la minima que se encuentra un positivo(1) vuelve al estado inicial, moviendóse a la derecha en estado 'scanright'
+Esto huele a bucle. Que va borrando cualquier bit positivo que se encuentre en los dos numeros hasta que ya no quede numero B en la expresión A-B=
+[RECAP]
+Haciendo operaciones binarias se concluye;
+1+1=10
+1+0=1
+0+1=1
+0+0=0
+
+y que 
+
+1-1=0
+1-0=1
+0-1=1
+0-0=0
+
+Hemos bajado tan bajo que nos hemos encontrado algo universal y que se puede construir, representar con señales electricas
+Según la algebra de Boole podemos entender la lógica a bajo nivel del sistema binario, con las puertas lógicas.
+Una puerta lógica es un dispositivo electrónico que realiza una operación lógica binaria basada en el álgebra de Boole, 
+Cada puerta procesa una o más señales de entrada y produce una señal de salida, 
+cuyo estado (0 o 1) depende de la función lógica que implementa y de las combinaciones de las entradas.
+
+Tipos principales de puertas lógicas
+AND (Y): La salida es 1 solo si todas las entradas son 1.
+OR (O): La salida es 1 si al menos una entrada es 1.
+NOT (NO): Invierte la señal de entrada (si la entrada es 1, la salida es 0, y viceversa).
+Otras combinaciones;
+NAND (NO-Y): Complemento de AND; salida es 0 solo si todas las entradas son 1. 
+NOR (NO-O): Complemento de OR; salida es 1 solo si todas las entradas son 0. 
+XOR (O-exclusiva): Salida es 1 cuando las entradas son diferentes.
+
+
+Nuestro bucle es ejecutado sobre el numero binario a restar y borrando del symbolo de fin de expresión '=' y hasta el operador '-' donde se detiene.
+Terminando nuestro ejemplo con ....
+
+Sino OR en la operación bit a bit guardando en memoria un positivo al entrar en negativo.
+ejemplo:    (decimal)  10 - 5 = 5
+            (binario)    1010
+                        -0101 
+                        ------
+                         0101
+(memoria vacía)
+a = None
+1). 0 - 1 => 0 OR 1 =>                              1 (en memoria, a=1)
+2). 1 - 0 (pero hay memoria, +1, a=0) => 1 - 1 =>   0
+3). 0 - 1 => 0 OR 1 =>                              1 (en memoria, a=1)
+4). 1 - 0 (pero hay memoria, +1) => 1 - 1 =>        0
+
+ejemplo:    (decimal)   10 - 7 = 3
+                         1010
+                        -0111 
+                        ------
+                         0111
+
+
+Gracias a Andrés por la resolutiva charla sobre operaciones sobre numeros binarios y algebra de boole
+
+
+1-1=0
+1-=
+...
+
+1+1=0
+1-=
+1.
+
+
+comparo el digito leído de derecha a izquierda (después de haber pasado una primera vez hasta el final)
+de cada numero en la entrada puedo centralizar la lógica de la MT para esta configuración en los estados al leer esas columnas de la entrada.
+En el caso de la resta son los estados 'eraseone', 'subone', 'skip' y scanright para el bucle. 
+
+"eraseone": [
+    { "read" : "1", "to_state": "subone", "write": "=", "action": "LEFT"},
+    { "read" : "-", "to_state": "HALT" , "write": ".", "action": "LEFT"}
+    ],
+"subone": [
+    { "read" : "1", "to_state": "subone", "write": "1", "action": "LEFT"},
+    { "read" : "-", "to_state": "skip" , "write": "-", "action": "LEFT"}]
+"skip": [
+        { "read" : ".", "to_state": "skip" , "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "scanright", "write": ".", "action": "RIGHT"}
+]
+
+(eraseone, -) -> (., LEFT, HALT)
+(eraseone, 1) -> (=, LEFT, subone)
+
+'Erasone' como su nombre lo indica borra un bit positivo de la entrada B, entrada=A-B
+y se para si ya no existe B
+
+(subone, -) -> (-, LEFT, skip)
+(subone, 1) -> (1, LEFT, subone)
+'Subone' se ejecuta después de haber borrado el primer bit de B y simplementa se mueve por los bit del numero hasta encontrar el operador y cambiar de estado
+
+(skip, .) -> (., LEFT, skip)
+(skip, 1) -> (., RIGHT, scanright)
+'skip' tiene la lógica de sobreescribir el numero A de la expresión A - B
+Borra el primer bit positivo que se encuentra.
+

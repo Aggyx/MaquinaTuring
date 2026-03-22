@@ -1,0 +1,180 @@
+Este archivo describe el razonamiento planteado para llevar a cabo la configuración de un MT capaz de realizar una resta.
+El alphabeto es [ "1", ".", "+", "=" ]
+
+Tipos principales de puertas lógicas
+AND (Y): La salida es 1 solo si todas las entradas son 1.
+OR (O): La salida es 1 si al menos una entrada es 1.
+NOT (NO): Invierte la señal de entrada (si la entrada es 1, la salida es 0, y viceversa).
+Otras combinaciones;
+NAND (NO-Y): Complemento de AND; salida es 0 solo si todas las entradas son 1. 
+NOR (NO-O): Complemento de OR; salida es 1 solo si todas las entradas son 0. 
+XOR (O-exclusiva): Salida es 1 cuando las entradas son diferentes.
+
+Con los conocimientos de la resta en binario vamos a facilmente entender la suma,
+Siguiendo las afirmaciones;
+
+1+1=10
+1+0=1
+0+1=1
+0+0=0
+
+
+ejemplo:        10 + 7 = 17
+                   1010 = 10
+                  +0111 = 7
+                 ------
+                 010001 = 17
+
+                 1010+0111=
+                 101010111=
+                 101010110=
+                 10=
+
+                 2 + 3 = 5
+                    10
+                    11
+                -------
+                   0101
+                
+                10+11=
+                10100=
+
+cuando nos encontramos 1 y 1 en la misma columna de los dos numeros shifteamos 1 a la izquierda (en el sistema decimal guardamos una decena)
+tendríamos que construir la tabla de transiciones
+
+Me estoy dando cuenta que caigo en una trampa que sería el alphabeto que estamos usando, o Gamma para los matemáticos (la secuencia de symbolos determinista)
+Si estamos realizando un suma unaria nuestro alphabeto es un solo symbolo, 
+solo acepta una sola entrada siempre la misma, no podemos construir numeros con eso pero si podemos poner varios de esos 1.
+Nuestro universo es {1} (binario sería {0,1}) con lo que representar numeros tendría que ser con el numero de unidades.
+
+decimal         unario
+0                  
+1                  1
+2                  11
+3                  111
+4                  1111
+5                  11111
+
+con que podemos empezar a definir nuestros campos de la máquina;
+M=(Q,Σ,Γ,δ,s,b,F)
+
+Conjunto de Estados (Q) = [ "inicio", "suma", "HALT" ]
+Conjunto de symbolos entrada (Σ) = "1"
+alfabeto de cinta (Γ) = [ "1", ".", "+", "=" ]
+Transición (δ) = JSON.transiciones
+Estado inicial (s) = inicio
+símbolo blanco (b) = "."
+Conjunto de estados finales (F) = JSON.transiciones.values()
+
+Σ ⊆ Γ
+y
+𝐵 ∈ Γ
+y 
+F ⊆ Q
+
+
+"name" : "unary_sum",
+"alphabet": [ "1", ".","+"],
+"blank" : ".",
+
+Blank aqui representa la ausencia del numero unario no pertenece a la suma unaria pura 
+pero la puedo dejar permitiendo entradas inválidas 
+pero al mismo tiempo la necesito para representar el infinito con la ausencia de este.
+
+Necesitamos recorrer hasta el operador, remplazarlo ya que solo tiene un significado de calculo no de valor,
+remplazarlo por un symbolo positivo, ahora obtendremos la suma de los numeros en base 1.  (1^a+1*b→1^a+b)
+Imaginemos
+-> Moverse hasta '+', escribir el symbolo
+-> Moverse hasta final de ultimo symbolo del segundo campo, escribir blanco
+ej: 
+    ..11+11 -> ..1111
+        1.+.1 -> 1.1..
+        1.+1. -> 1.1..
+    ..111...+...1111... -> ..111...1...111...
+
+Añadiendo el punto hemos añadido complejidad al tener que determinar el espacio entre los symbolos
+    ..111...+...1111... -> ..111...1...111...
+tendría que ser
+    ..111...+...1111... -> .....1111111......
+No nos sirven estos estados
+Estas reglas solo funcionan en entradas dentro de Γ ({1})
+
+Mejoremos la lógica de borrar el operador, podemos shiftear (mover) a la izq o derecha cada symbolo (dentro de Γ).
+Tendriamos que determinar cuando, cuanto tiempo, y hasta donde.
+cuando ? -> al principio o fin del segundo campo
+tiempo ? -> tamaño N del segundo campo
+hasta donde ? -> hasta el +
+Pensando sobre como borrar el operador
+
+{
+    "name" : "unary_sum",
+    "alphabet": ["1", ".", "+"],
+    "blank" : ".",
+    "states" : [ "initial", "sum1", "sum2", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"}, 
+        { "read" : "1", "to_state": "sum1", "write": ".", "action": "RIGHT"}, 
+        { "read" : "+", "to_state": "sum2", "write": ".", "action": "RIGHT"}
+    ],
+    "sum1": [
+        { "read" : ".", "to_state": "sum1", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "sum1", "write": "1", "action": "RIGHT"},
+        { "read" : "+", "to_state": "sum2", "write": "1", "action": "RIGHT"}
+    ],
+    "sum2": [
+        { "read" : ".", "to_state": "HALT", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "sum2", "write": "1", "action": "RIGHT"}
+    ]
+    }
+}
+
+
+
+
+la máquina pasa por dos estados diferentes:
+
+("e0", 1) -> (1, RIGHT, "e0")
+("e0", .) -> (., RIGHT, "e0")
+("e0", +) -> (1, RIGHT, "e1")
+Nos encontramos en el operador y lo hemos remplazado por el symbolo
+
+Me encontrado con que puedo definir de varias formas el 'último' caracter seguro puedo hacer máquinas de diferentes complejidades
+
+Para definir el final me he encontrado un 
+("e1", 1) -> (1, RIGHT, "e1") #recorro el segundo campo hasta '.'
+("e1", .) -> (., )
+
+"states" : [ "inicio", "suma", "HALT" ],
+"initial" : "scanright",
+"finals" : [ "HALT" ],
+
+
+    "transitions" : {
+    "scanright": [
+        { "read" : ".", "to_state": "scanright", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "scanright", "write": "1", "action": "RIGHT"},
+        { "read" : "+", "to_state": "scanright", "write": "+", "action": "RIGHT"},
+        { "read" : "=", "to_state": "eraseone" , "write": ".", "action": "LEFT" }
+        ],
+    "eraseone": [
+        { "read" : "1", "to_state": "plusone", "write": "=", "action": "LEFT"},
+        { "read" : "+", "to_state": "HALT" , "write": ".", "action": "LEFT"}
+        ],
+    "plusone": [
+        { "read" : "1", "to_state": "plusone", "write": "1", "action": "LEFT"},
+        { "read" : "+", "to_state": "skip" , "write": "+", "action": "LEFT"}
+        ],
+    "skip": [
+        { "read" : ".", "to_state": "skip" , "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "scanright", "write": ".", "action": "RIGHT"}
+        ]
+    }
+
+
+sources:
+https://en.wikipedia.org/wiki/Unary_operation
+https://stackoverflow.com/questions/59912838/turing-machine-to-calculate-sum-of-2-binary-numbers
+https://fr.wikipedia.org/wiki/Additionneur

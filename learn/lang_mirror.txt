@@ -1,0 +1,151 @@
+Este archivo describe el razonamiento planteado para llevar a cabo la configuración de un MT capaz de responder con un 'y' o 'n' si la entrada pertenece al conjunto 0^n1^n.
+Que pasa si reutilizamos la logica de comparar los extremos pero ahora si son diferentes es "y" sino "n" y solo puede empezar por 0. 
+además la comparación de principio y final de bit si no hay segundo operando se escribe 'n'.
+
+{
+    "name" : "palindrome",
+    "alphabet": ["1", "0", ".", "y", "n", "="],
+    "blank" : ".",
+    "states" : [ "initial", "gotoend_cmp1", "gotoend_cmp0", "cmp_1_erase_then_left", "cmp_0_erase_then_left", "borrarL", "gotostart", "initial2", "write_y", "write_n", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"},
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ],
+    "gotoend_cmp1": [
+        { "read" : "=", "to_state": "cmp_1_erase_then_left", "write": "=", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "n", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp1", "write": "0", "action": "RIGHT"}
+    ],
+    "gotoend_cmp0": [
+        { "read" : "=", "to_state": "cmp_0_erase_then_left", "write": "=", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "n", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp0", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": "0", "action": "RIGHT"}
+    ],
+    "cmp_1_erase_then_left": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "cmp_1_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": ".", "action": "LEFT"}
+    ],
+    "cmp_0_erase_then_left": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "cmp_0_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": ".", "action": "LEFT"}
+    ],
+
+    "write_y": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "write_y", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "write_y", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "write_y", "write": ".", "action": "RIGHT"}
+    ],
+
+    "write_n": [
+        { "read" : "=", "to_state": "HALT", "write": "n", "action": "STOP"},
+        { "read" : ".", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "write_n", "write": ".", "action": "RIGHT"}
+    ],
+
+    "borrarL": [
+        {"read": ".", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"}
+    ],
+    "gotostart": [
+        {"read": "=", "to_state": "initial2", "write": "=", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotostart", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": "1", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"}
+    ],
+
+    "initial2": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "initial2", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp1", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ]
+ }
+}
+
+
+
+... finalmente tras testear y rectificar;
+
+
+{
+    "name" : "palindrome",
+    "alphabet": ["1", "0", ".", "y", "n", "="],
+    "blank" : ".",
+    "states" : [ "initial", "gotoend_cmp1", "gotoend_cmp0", "cmp_1_erase_then_left", "cmp_0_erase_then_left", "borrarL", "gotostart", "initial2", "write_y", "write_n", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"},
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : "1", "to_state": "borrarR", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ],
+    "borrarR": [
+        { "read" : "=", "to_state": "HALT", "write": "n", "action": "STOP"},
+         { "read" : ".", "to_state": "borrarR", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "borrarR", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "borrarR", "write": ".", "action": "RIGHT"}
+    ],
+    "gotoend_cmp0": [
+        { "read" : "=", "to_state": "cmpinverse_0_erase_then_left", "write": "=", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "n", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "y", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "gotoend_cmp0", "write": "1", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": "0", "action": "RIGHT"}
+    ],
+    "cmpinverse_0_erase_then_left": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "cmpinverse_0_erase_then_left", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"}
+    ],
+
+    "write_n": [
+        { "read" : "=", "to_state": "HALT", "write": "n", "action": "STOP"},
+        { "read" : ".", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "write_n", "write": ".", "action": "RIGHT"}
+    ],
+
+    "borrarL": [
+        {"read": ".", "to_state": "write_n", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "borrarL", "write": ".", "action": "LEFT"},
+        { "read" : "0", "to_state": "borrarL", "write": ".", "action": "LEFT"}
+    ],
+    "gotostart": [
+        {"read": "=", "to_state": "initial2", "write": "=", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"},
+        { "read" : ".", "to_state": "gotostart", "write": ".", "action": "LEFT"},
+        { "read" : "1", "to_state": "gotostart", "write": "1", "action": "LEFT"},
+        { "read" : "0", "to_state": "gotostart", "write": "0", "action": "LEFT"}
+    ],
+
+    "initial2": [
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"},
+        { "read" : ".", "to_state": "initial2", "write": ".", "action": "RIGHT"},
+        { "read" : "1", "to_state": "borrarR", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "gotoend_cmp0", "write": ".", "action": "RIGHT"}
+    ]
+ }
+}

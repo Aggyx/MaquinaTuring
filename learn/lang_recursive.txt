@@ -1,0 +1,55 @@
+A machine able to run the first machine of this list (lang_sum.txt and machines/unar_sum.json), the one computing an unary
+addition. The machine alphabet, states, transitions and input ARE the input of
+the machine you are writing, encoded as you see fit.
+
+no se entiende de primeras pero creo que se refiere a 
+ejecutar la máquina con una configuración que sea capaz de interpretar una configuración en la entrada además de la entrada.
+Una máquina que se programe a sí misma.
+
+Por ejemplo:
+    ./ft_turing machines/recursiva.json " \
+            {
+                "name" : "unary_sum",
+                "alphabet": ["1", ".", "+"],
+                "blank" : ".",
+                "states" : [ "initial", "sum1", "sum2", "HALT" ],
+                "initial" : "initial",
+                "finals" : [ "HALT" ],
+                "transitions" : {
+                "initial": [
+                    { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"}, 
+                    { "read" : "1", "to_state": "sum1", "write": ".", "action": "RIGHT"}, 
+                    { "read" : "+", "to_state": "sum2", "write": ".", "action": "RIGHT"}
+                ],
+                "sum1": [
+                    { "read" : ".", "to_state": "sum1", "write": ".", "action": "RIGHT"},
+                    { "read" : "1", "to_state": "sum1", "write": "1", "action": "RIGHT"},
+                    { "read" : "+", "to_state": "sum2", "write": "1", "action": "RIGHT"}
+                ],
+                "sum2": [
+                    { "read" : ".", "to_state": "HALT", "write": ".", "action": "LEFT"},
+                    { "read" : "1", "to_state": "sum2", "write": "1", "action": "RIGHT"}
+                    ]
+                }
+            }|111-111="
+
+En este caso tendría que interpretar muchos más caracteres, alphanumerico y con algunos caracteres especiales. 
+(En el ejemplo pongo saltos de linea pero no deberían de haber)
+
+tratemos de empezar la configuración json de la máquina recursiva;
+name: "recursive"
+alphabet: 'abcdefghijklmnopqrstuvwxyz0123456789{}"":,[]|'
+
+me doy cuenta que tendría que hacer toda la tabla ascii para poder definir un conjunto de estados y transiciones dentro de la tabla ascii
+Así poder usar los marcadores que quisieramos en la entrada, por encima definimos reglas sobre algunos symbolos que no se podrán poner en la entrada ya que serán tratados para la lógica de carga de la máquina.
+por ejemplo {}"":,[]| para delimitar la carga y la ejecución.
+
+rompiendome la cabeza vuelvo a leer el subject y me doy cuenta que NO pone una máquina universal sino solo la de unary_sum.
+me doy cuenta que  mi código es determinista dejando de ses universal con que no puedo hacer una máquina de estas podría simular una validación de la operación que se quiere hacer.
+(ej: UNARY_SUM|111+111) pero editar estados y transiciones es algo que mi código no permite por su planteamiento.
+Alomejor tendría que  
+
+
+
+
+

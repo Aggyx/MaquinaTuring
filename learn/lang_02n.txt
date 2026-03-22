@@ -1,0 +1,29 @@
+Este archivo describe el razonamiento planteado para llevar a cabo la configuración de un MT capaz de responder con un 'y' o 'n' si la entrada pertenece al conjunto 0^2n.
+tenemos que detectar si n es par, con una sola entrada.
+sabemos que el estado inicial empieza por el indice 0, si hacemos rotar dos estados conseguimos diferenciar par e impar imagino y solo queda usar un marcador.
+
+{
+    "name" : "02n",
+    "alphabet": ["0", ".", ="],
+    "blank" : ".",
+    "states" : [ "initial", "par", "impar", "HALT" ],
+    "initial" : "initial",
+    "finals" : [ "HALT" ],
+    "transitions" : {
+    "initial": [
+        { "read" : ".", "to_state": "initial", "write": ".", "action": "RIGHT"}, 
+        { "read" : "0", "to_state": "impar", "write": ".", "action": "RIGHT"}, 
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"}
+    ],
+    "par": [
+        { "read" : ".", "to_state": "par", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "impar", "write": ".", "action": "RIGHT"},
+        { "read" : "=", "to_state": "HALT", "write": "y", "action": "STOP"}
+    ],
+    "impar": [
+        { "read" : ".", "to_state": "impar", "write": ".", "action": "RIGHT"},
+        { "read" : "0", "to_state": "par", "write": ".", "action": "RIGHT"},
+        { "read" : "=", "to_state": "HALT", "write": "n", "action": "STOP"}
+    ]
+    }
+}

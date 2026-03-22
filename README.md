@@ -15,7 +15,7 @@ Para compilar uso Ocamlopt
 
 También se puede usar ocamlc
 
-Uso una librería externa Yojson
+Uso Yojson
 
 # Uso
 ```sh
@@ -26,7 +26,4 @@ make clean   (borra sources)
 make fclean  (borra sources+ejecutable)
 make re      (make fclean + make run)
 ```
-# TODO
-Parser Json a mano
-bucle de ejecución
-
+# Bonus
